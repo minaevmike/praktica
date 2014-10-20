@@ -1,0 +1,17 @@
+<html>
+	<body>
+	{% if user.is_authenticated %}
+		{{ user.username }}
+	{% else %}
+		<p>NOT</p>
+	{% endif %}
+	{% if error %}
+	{{ error }}
+	{% endif %}
+		<form action="/dplm/register" method="post"> {% csrf_token %}
+			Login: <input type="text" name="username"/><br>
+			Password: <input type="password" name="password"/><br>
+			<input type="submit" value="Submit">
+		</form>
+	</body>
+</html>

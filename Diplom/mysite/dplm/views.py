@@ -7,8 +7,10 @@ from django.template import RequestContext, loader
 from django.core.files.uploadedfile import UploadedFile, File
 #from django.core.context_processors import csrf
 from dplm.models import Mesh
-from dplm.models import Doc
+from dplm.models import Doc, User
 from .decimation import decimate_pro
+from django.contrib.auth import login, logout, authenticate
+from django.views.decorators.csrf import csrf_exempt
 #from dplm.models import UploadFileForm
 
 #These are for file upload------------------------------
@@ -28,7 +30,7 @@ def CreateDecimateName(origName):
 
 
 meshesFolder = "D:\\Diplom\\mysite\\mysite\\files\\media\\dplm\\meshes\\"
-g_uploadedFileName = settings.UPLOAD_FOLDER + "\\uploaded.STL"
+g_uploadedFileName = settings.UPLOAD_FOLDER + os.sep + "uploaded.STL"
 g_uploadedDecFileName = CreateDecimateName(g_uploadedFileName)
 
 def index(request):
@@ -134,6 +136,23 @@ def try_to_upload(request):
         })
         return HttpResponse(template.render(context))
 
+def registrate(request):
+    return render(request, 'dplm/registrate.html', {})
+
+@csrf_exempt
+def register(request):
+    info = ''
+    #try:
+    username = request.POST['username']
+    password = request.POST['password']
+    user = User.objects.create_user(username=username, password=password)
+    user.save()
+    user = authenticate(username=username, password=password)
+    login(request, user)
+    return render(request, 'dplm/registrate.html', {'error':''})
+    #except 
+    #except :
+      #  return render(request, 'dplm/registrate.html', {'error':'CANT registrate'})
 
 def first_upload_step(request):
     if request.FILES == None:
@@ -242,6 +261,7 @@ def CreateDecimatedFileInUploadFolder(request):
 
 
 def WriteFileToDestination(file, destUrl):
+    print(destUrl)
     with open(destUrl, "wb") as destination:
         for chunk in file.chunks():
             destination.write(chunk)

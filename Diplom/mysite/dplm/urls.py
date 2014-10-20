@@ -25,6 +25,8 @@ urlpatterns = patterns('',
     url(r'get_cone_gear_xml', views.get_cone_gear_xml, name='get_cone_gear_xml'),
     url(r'get_autoBody_xml', views.get_autoBody_xml, name='get_autoBody_xml'),
     url(r'get_wheel_xml', views.get_wheel_xml, name='get_wheel_xml'),
+    url(r'registrate', views.registrate, name='registrate'),
+    url(r'register', views.register, name='register')
    # url(r'^media/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT})
 
 ) + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
