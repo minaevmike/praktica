@@ -1,0 +1,103 @@
+<html>
+<head>
+
+{% load static staticfiles %}
+<style>body { background: #A0CFEC}</style>
+<link href='{% static "CSS/decimation.css" %}' rel="stylesheet" type="text/css">
+<script type="text/javascript" src='{% static "JS/jquery.js" %}'></script>
+<script type="text/javascript" src='{% static "JS/CSRF.js" %}'></script>
+<script type="text/javascript" src='{% static "JS/Functions.js" %}'></script>
+<script type="text/javascript" src='{% static "JS/three.min.js" %}'></script>
+<script type="text/javascript" src='{% static "JS/STLLoader.js" %}'></script>
+<script type="text/javascript" src='{% static "JS/Render.js" %}'></script>
+
+</head>
+<body>
+    <!--набор скрытых полей для передачи служебной информации-->
+    <input type="hidden" name="comment" id="comment" value="{{comment}}">
+    <input type="hidden" name="related_files_string" id="related_files_string" value="{{related_files_string}}">
+    <!--end-->
+
+<div class="container">
+    <div class = "main" id = "viewport">
+    </div>
+    <script>
+        InitScene( "viewport", "/media/dplm/meshes/uploadProcess/uploaded_dec.STL" );
+    </script>
+
+    <div class = "control-panel">
+         <form>
+            {% csrf_token %}
+            <!--<p>{{comment}}</p>-->
+            <!--<p>{{related_files_string}}</p>-->
+            <p><td colspan = "2" align = "center"><label for="title">Название: </label><input readonly  type="text" id="title" value="{{ mesh_name }}" class="control-panel__button" ></p>
+            <p><td colspan = "2" align = "center"><label for="reduceVal">Степень редукции (от 1 до 100): </label><input type="number" min="1" max="100" id="reduceVal" value="50" class="control-panel__button" ></p>
+            <p><td colspan = "2" align = "center"><input id = "DecimButton" class="control-panel__button" type = "button" name = "decimate" value = "Редуцировать" /></p>
+
+
+            <script>
+                var addButton = document.getElementById('DecimButton');
+                addButton.onclick = function(){
+                    //Редуцируем модель и перезагружаем изображение
+                    var xhr = new XMLHttpRequest();
+                    var valFromForm = document.getElementById('reduceVal');
+                    var reduceVal = valFromForm.value * 0.01;
+                    var params = "reduce_value=" + encodeURIComponent(reduceVal);
+
+                    xhr.open('POST', '/dplm/decimate/', true);
+                    SetHeaderForPostRequest(xhr);
+
+                    xhr.onreadystatechange= function(){
+                        if(xhr.readyState != 4){
+                            return;
+                        }
+
+                        //Перезагружаем изображение
+                        CreateGeometry( "/media/dplm/meshes/uploadProcess/uploaded_dec.STL" );
+                    }
+
+                    xhr.send(params);
+                }
+            </script>
+
+             <div>
+             <div>
+            <td colspan = "2" align = "center"><input id = "SaveButton" class="control-panel__button" type = "button" name = "saveMesh" value = "Сохранить деталь в базе данных" />
+            <script>
+                var saveButton = document.getElementById('SaveButton');
+                saveButton.onclick = function(){
+                    //Сохраняем настроенную деталь в базу данных
+                    var xhr = new XMLHttpRequest();
+
+                    var title = document.getElementById('title');
+                    var reduceVal = document.getElementById('reduceVal');
+                    var comment = document.getElementById('comment');
+                    var relatedFilesString = document.getElementById('related_files_string');
+                    var params = "title=" + encodeURIComponent(title.value)
+                            + "&reduceVal=" + encodeURIComponent(reduceVal.value)
+                            + "&comment=" + encodeURIComponent(comment.value)
+                            + "&related_files_string=" + encodeURIComponent(relatedFilesString.value);
+
+                    //alert(params);//TODO: удалить
+                    xhr.open('POST', '/dplm/second_upload_step/', true);
+                    SetHeaderForPostRequest(xhr);
+
+                    xhr.onreadystatechange = function() {
+                        if(xhr.readyState != 4){
+                            return;
+                        }
+
+                        //Переходим на страницу со списком моделей
+                        window.location.replace("/dplm/");
+                    }
+
+                    //xhr.send(body);
+                    xhr.send(params);
+                }
+            </script>
+        </form>
+    </div>
+
+    <div>
+</div>
+</body>

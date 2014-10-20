@@ -1,0 +1,333 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.js"></script>
+
+        <!-- <style>canvas { width: 100%; height: 100% }</style> -->
+        <style>body { background: #A0CFEC}</style>
+        <style>viewport {
+            background-color: #000;
+            width: 600px;
+            height: 600px;
+            border: 1px solid black;
+            margin: 100px;
+            padding: 0px;
+            position: static; /* fixed or static */
+            top: 100px;
+            left: 100px;
+        }</style>
+
+</head>
+<body>
+<div id="DelName"><!--TODO: удалить-->
+</div>
+<script>
+    //alert( typeof $ );//TODO: проверка jQuery, удалить
+
+    function SetHeaderForPostRequest(xhr)
+    {
+         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded')
+         xhr.setRequestHeader("X-CSRFToken", csrftoken);
+    }
+
+    var g_selectedName;
+    function getCookie(name)
+    {
+        var cookieValue = null;
+
+        if (document.cookie && document.cookie != '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = jQuery.trim(cookies[i]);
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+
+        return cookieValue;
+    }
+
+    var csrftoken = getCookie('csrftoken');
+
+    //alert(csrftoken);
+
+//    function csrfSafeMethod(method) {
+//        // these HTTP methods do not require CSRF protection
+//        return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+//    }
+//
+//    function sameOrigin(url) {
+//        // test that a given url is a same-origin URL
+//        // url could be relative or scheme relative or absolute
+//        var host = document.location.host; // host + port
+//        var protocol = document.location.protocol;
+//        var sr_origin = '//' + host;
+//        var origin = protocol + sr_origin;
+//        // Allow absolute or scheme relative URLs to same origin
+//        return (url == origin || url.slice(0, origin.length + 1) == origin + '/') ||
+//            (url == sr_origin || url.slice(0, sr_origin.length + 1) == sr_origin + '/') ||
+//            // or any other URL that isn't scheme relative or absolute i.e relative.
+//            !(/^(\/\/|http:|https:).*/.test(url));
+//    }
+//
+//    $.ajaxSetup({
+//        beforeSend: function(xhr, settings) {
+//            if (!csrfSafeMethod(settings.type) && sameOrigin(settings.url)) {
+//                // Send the token to same-origin, relative URLs only.
+//                // Send the token only if the method warrants CSRF protection
+//                // Using the CSRFToken value acquired earlier
+//                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+//            }
+//        }
+//    });
+</script>
+
+<!--TODO: ПЕРЕНЕСТИ В ОТДЕЛЬНЫЙ ФАЙЛ!!!!!!!!!!!!!!!!!!!!-->
+ <div id = "viewport"></div><!-- контейнер для отображения трехмерной сцены -->
+
+        <script src="https://rawgithub.com/mrdoob/three.js/master/build/three.js"></script>
+        <script src="STLLoader.js"></script>
+		<script>
+
+            //Объекты, необходимые для контроля камеры
+            var isMouseDown = false;                        //нажата ли левая клавиша мыши?
+            var onMouseDownPosition = new THREE.Vector2();  //позиция курсора мыши в момент нажатия левой кнопки
+            var scene, camera, renderer, geometry, material, mesh;    //объекты для трехмерной визуализации
+            var loader;                                               //загрузчик
+
+            InitScene();
+
+            //==========================================================================================================
+            //Функции---------------------------------------------------------------------------------------------------
+
+                //Инициализация сцены
+                function InitScene()
+                {
+                    SetEventListeners("viewport");
+                    PrepareThreejsScene("viewport");
+                    PrepareStlLoader();
+                    CreateGeometry();
+                }
+
+                //Установка обработчиков событий
+                function SetEventListeners(divName)
+                {
+                    var divElement = document.getElementById(divName);
+                    divElement.addEventListener( 'mousemove', OnDocumentLeftMouseMove, false );
+                    divElement.addEventListener( 'mousedown', OnDocumentLeftMouseDown, false );
+                    divElement.addEventListener( 'mouseup', OnDocumentLeftMouseUp, false );
+                    divElement.addEventListener( 'mousewheel', OnDocumentMouseWheel, false );
+                }
+
+                //Функция подготавливает объекты, необходимые для визуализации
+                function PrepareThreejsScene(divName)
+                {
+                    //Создаем необходимые объекты - камеру и сцену
+                    scene = new THREE.Scene();
+                    camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+                    camera.position.z = 5;
+                    camera.lookAt(scene.position);//TODO: возможно это нужно поместить в другое место
+                    scene.add(camera);
+
+                    //Настраиваем рендер
+                    var container = document.getElementById(divName);
+                    document.body.appendChild(container);
+                    renderer = new THREE.WebGLRenderer();
+                    renderer.setSize(600, 600); //TODO: тут лучше всего получать размер из самом div элемента
+                    renderer.setClearColorHex(0x333F47, 1);
+                    container.appendChild(renderer.domElement);
+
+                    //Создаем материал для меша
+                    material = new THREE.MeshPhongMaterial( {shading: THREE.FlatShading});  //Создали материал
+
+                    //Настраиваем свет
+                    var light = new THREE.PointLight();
+                    light.position = camera.position;
+                    scene.add(light);
+                }
+
+                //Функция инициализирует загрузчик STL
+                function PrepareStlLoader()
+                {
+                    loader = new THREE.STLLoader();
+                  	loader.addEventListener( 'load', function ( event ) {
+                  	    geometry = event.content;
+                  		mesh = new THREE.Mesh(geometry, material);
+                        scene.add(mesh);
+                  	} );
+                }
+
+                //Функция создает геометрию
+                function CreateGeometry()
+                {
+                    //Создаем кубик
+                    //geometry = new THREE.CubeGeometry(1,1,1);                   //Создали геометрию
+                    //var material = new THREE.MeshPhongMaterial( {shading: THREE.FlatShading});  //Создали материал
+                    //cube = new THREE.Mesh(geometry, material);                  //На основе этих данных создали меш
+
+//                    var loader = new THREE.STLLoader();
+//                  	loader.addEventListener( 'load', function ( event ) {
+//                  	    geometry = event.content;
+//                  		cube = new THREE.Mesh(geometry, material);
+//                        scene.add(cube);
+//                  	} );
+
+                    loader.load( 'lotus.STL' );
+
+                    //Добавляем необходимые оъекты в сцену
+                    //scene.add(cube);
+                }
+
+                //Функция отрисовки сцены
+                function render() {
+                    renderer.render( scene, camera );
+                }
+
+                //Функции для обработки действий пользователя-----------------------------------------------------------
+                function OnDocumentLeftMouseDown(event)
+                {
+                    event.preventDefault();
+
+                    isMouseDown = true;
+
+                    onMouseDownPosition.x = event.clientX;
+                    onMouseDownPosition.y = event.clientY;
+                }
+
+                function OnDocumentLeftMouseUp(event)
+                {
+                    event.preventDefault();
+
+                    isMouseDown = false;
+
+                    onMouseDownPosition.x = event.clientX - onMouseDownPosition.x;
+                    onMouseDownPosition.y = event.clientY - onMouseDownPosition.y;
+                }
+
+               function OnDocumentLeftMouseMove( event )
+                {
+                    event.preventDefault();
+
+                    if ( isMouseDown ) {
+                        var mouseMoveX = event.clientX - onMouseDownPosition.x;
+                        var mouseMoveY = event.clientY - onMouseDownPosition.y;
+
+                        //Вращаем геометрию вместо камеры
+                        mesh.rotation.x += mouseMoveY * 0.005;
+                        mesh.rotation.z += mouseMoveX * 0.005;
+
+                        onMouseDownPosition.x = event.clientX;
+                        onMouseDownPosition.y = event.clientY;
+                    }
+
+                    render();
+                }
+
+                function OnDocumentMouseWheel( event )
+                {
+                    event.preventDefault();
+                    alert("wheel");
+                    //radious -= event.wheelDeltaY;
+
+                    camera.position.z += event.wheelDeltaY;
+                    camera.updateMatrix();
+
+                    render();
+                }
+
+		</script>
+
+<form>
+{% csrf_token %}
+Список моделей в базе данных:
+<div>
+    {% if mesh_list %}
+        <select id = "MeshList" name = "Meshes" size = "20" multiple>
+            {% for mesh in mesh_list %}
+                <option value="{{mesh.m_name}}">{{mesh.m_name}}</option>
+            {% endfor %}
+        </select>
+        <script>
+             var meshList = document.getElementById('MeshList');
+             meshList.onchange = function(){
+                var xhr = new XMLHttpRequest();
+
+                g_selectedName = this.value;
+                var params = "msh_name=" + encodeURIComponent(g_selectedName);
+                //xhr.open('POST', '/dplm/get_mesh_data', true);
+                //SetHeaderForPostRequest(xhr);
+                xhr.open('GET', '/dplm/get_mesh_data?' + params, true);
+
+                xhr.onreadystatechange = function() {
+                    if(xhr.readyState != 4){
+                        return;
+                    }
+
+                    //Данные ответа будут находиться в xhr.responseText
+                    var outputMsg = document.getElementById('outputMsg');
+                    outputMsg.innerHTML = xhr.responseText;
+                }
+
+                //xhr.send(params);
+                 xhr.send();
+             }
+        </script>
+    {% else %}
+        <p>В базе данных нет деталей</p>
+    {% endif %}
+<div id = "outputMsg"><!--TODO: удалить-->
+</div>
+   <div id = "fileButtons">
+<div>
+<td colspan = "2" align = "center"><input type = "submit" name = "downloadOriginalMesh" value = "Скачать оригинальную модель" />
+<div>
+<td colspan = "2" align = "center"><input type = "submit" name = "downloadDecimatedMesh" value = "Скачать редуцированную модель" />
+<div>
+    </div>
+<td colspan = "2" align = "center"><input id = "DeleteButton" type = "button" name = "deleteMesh" value = "Удалить модель из базы" />
+    <script>
+        var deleteButton = document.getElementById('DeleteButton');
+        deleteButton.onclick = function (){
+           if(g_selectedName == undefined){
+               alert("Не выбрано элемента для удаления");
+           }
+           else{
+               //Посылаем запрос серверу на удаление объекта из базы данных
+               var xhr = new XMLHttpRequest();
+
+               var params = "name=" + encodeURIComponent(g_selectedName);
+               xhr.open('POST', '/dplm/delete_mesh', true);
+               SetHeaderForPostRequest(xhr);
+
+               xhr.onreadystatechange = function() {
+                   if(xhr.readyState != 4){
+                       return;
+                   }
+
+                   //Когда ответ от сервера получен, надо заново сформировать список с моделями
+                   var meshList = document.getElementById('MeshList')
+                   meshList.innerHTML = xhr.responseText;
+               }
+
+               xhr.send(params);
+           }
+
+        }
+    </script>
+<div>
+<td colspan = "2" align = "center"><input id = "AddButton" type = "button" name = "addMesh" value = "Добавить модель в базу данных" />
+<script>
+    var addButton = document.getElementById('AddButton');
+    addButton.onclick = function(){
+        //document.location.href = "add_mesh";
+        document.location.href = "try_to_upload";
+    }
+</script>
+</div>
+</form>
+</body>
+</html>

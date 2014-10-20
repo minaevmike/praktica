@@ -1,0 +1,54 @@
+<html>
+<head>
+
+{% load static staticfiles %}
+<style>body { background: #A0CFEC}</style>
+<link href='{% static "CSS/upload.css" %}' rel="stylesheet" type="text/css">
+<script type="text/javascript" src='{% static "JS/jquery.js" %}'></script>
+<script type="text/javascript" src='{% static "JS/three.min.js" %}'></script>
+<script type="text/javascript" src='{% static "JS/STLLoader.js" %}'></script>
+<script type="text/javascript" src='{% static "JS/CSRF.js" %}'></script>
+<script type="text/javascript" src='{% static "JS/Functions.js" %}'></script>
+<script type="text/javascript" src='{% static "JS/Render.js" %}'></script>
+
+</head>
+<body>
+
+<div class="container">
+    <!--<form action="/dplm/try_to_upload/" class = "control-panel" method="post" {% if form.is_multipart %}enctype="multipart/form-data"{% endif %}>{% csrf_token %}-->
+    <!--{{ form.as_p }}-->
+    <!--<input type="submit" value="Добавить деталь в базу данных" />-->
+    <!--</form>-->
+    <form action="/dplm/first_upload_step/" class="control-panel" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="title2" id="title2" class="control-panel__button" value = "вот так"></p>
+        <p><td colspan = "2" align = "center"><label for="title">Название детали: </label><input type="text" name="title" id="title" class="control-panel__button" ></p>
+        <p><td colspan = "2" align = "center"><label for="stlFile">Файл с моделью формата STL: </label><input type="file" name="stlFile" id="stlFile" class="control-panel__button" ></p>
+        <!--<p><td colspan = "2" align = "center"><label for="relatedFiles">Прилагаемые файлы: </label><input type="file" multiple="true" name="relatedFiles" id="relatedFiles" class="control-panel__button" ></p>-->
+        <p><td colspan = "2" align = "center"><label for="comment">Комментарий к файлам: </label><textarea name="comment" id="comment" rows="10" class="control-panel__button" ></textarea></p>
+        <p><input type="button" id="submitButton" value="Добавить деталь в базу данных" /></p>
+    </form>
+    <script>
+        var button = document.getElementById("submitButton");
+        button.onclick = function() {
+            var title = document.getElementById("title");
+            var stlFileField = document.getElementById("stlFile");
+
+            //Вначале проверяем, есть ли такая модель уже в базе данных
+            if(true == IsThereModelWithThisTitle(title.value)){
+                alert("В базе данных уже есть модель с таким именем");
+            }
+            else{
+                this.form.submit();
+            }
+        }
+    </script>
+
+    <div class="main">
+        На этой странице вы можете настроить атрибуты загружаемой детали. Для детали необходимо загрузить STL файл, который будет представлять деталь.
+        Также можно прикрепить к детали сопуствующие файлы - файлы с расчетами прочности, файлы чертежей и т.д. На следующей странице вам будет предложено настроить степень редуцирования детали.
+    </div>
+
+</div>
+
+</body>

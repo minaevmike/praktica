@@ -1,0 +1,194 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+{% load static staticfiles %}
+
+        <!-- <style>canvas { width: 100%; height: 100% }</style> -->
+        <style>body { background: #A0CFEC}</style>
+        <link href='{% static "CSS/style.css" %}' rel="stylesheet" type="text/css">
+
+<!--<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.js"></script>-->
+<!--<script type="text/javascript" src="https://rawgithub.com/mrdoob/three.js/master/build/three.js"></script>-->
+
+<script type="text/javascript" src='{% static "JS/jquery.js" %}'></script>
+<script type="text/javascript" src='{% static "JS/three.min.js" %}'></script>
+<script type="text/javascript" src='{% static "JS/dat.gui.min.js" %}'></script>
+<script type="text/javascript" src='{% static "JS/CSRF.js" %}'></script>
+<script type="text/javascript" src='{% static "JS/Functions.js" %}'></script>
+<script type="text/javascript" src='{% static "JS/STLLoader.js" %}'></script>
+<script type="text/javascript" src='{% static "JS/Gui.js" %}'></script>
+<script type="text/javascript" src='{% static "JS/Render.js" %}'></script>
+<script type="text/javascript" src='{% static "JS/RelatedInfoRender.js" %}'></script>
+
+</head>
+<body>
+<div class="container">
+    <!--<img src='{% static "img.png" %}'/>--> <!--TODO: для примера, потом удалить-->
+
+    <div id="DelName"><!--TODO: удалить-->
+    </div>
+    <script>
+        var g_selectedName;
+    </script>
+
+    <div class="main" id="viewport">
+        <!-- контейнер для отображения трехмерной сцены -->
+    </div>
+    <script>
+        InitScene( "viewport", "" );
+    </script>
+
+    <div class="bottom" id="stlLinks">
+        <!--Элемент для отображения ссылок на STL модели-->
+    </div>
+    <!--<div class="bottom" id="relatedInfo">-->
+        <!--&lt;!&ndash;Элемент для отображения сопутствующей информации&ndash;&gt;-->
+    <!--</div>-->
+
+    <div class="comtrol-panel">
+        <form>
+        {% csrf_token %}
+        Список деталей в базе данных:
+        <div>
+            {% if mesh_list %}
+                <select id = "MeshList" name = "Meshes" size = "20" class="control-panel__select" multiple>
+                    {% for mesh in mesh_list %}
+                        <option value="{{mesh.m_name}}">{{mesh.m_name}}</option>
+                    {% endfor %}
+                </select>
+                <script>
+                     var meshList = document.getElementById('MeshList');
+                     meshList.onchange = function(){
+                        var xhr = new XMLHttpRequest();
+
+                        g_selectedName = this.value;
+                        var params = "msh_name=" + encodeURIComponent(g_selectedName);
+                        xhr.open('POST', '/dplm/get_mesh_data', true);
+                        SetHeaderForPostRequest(xhr);
+                        //xhr.open('GET', '/dplm/get_mesh_data?' + params, true);
+
+                        xhr.onreadystatechange = function() {
+                            if(xhr.readyState != 4){
+                                return;
+                            }
+
+                            //Данные ответа будут находиться в xhr.responseText
+                            CreateGeometry(xhr.responseText);
+
+                            //Получаем ссылки на STL файлы
+                            var stlXhr = new XMLHttpRequest();
+                            stlXhr.open('POST', '/dplm/get_stl_links', true);
+                            SetHeaderForPostRequest(stlXhr);
+                            stlXhr.onreadystatechange = function() {
+                                if(stlXhr.readyState != 4){
+                                    return;
+                                }
+
+                                var stlLinksDiv = document.getElementById("stlLinks");
+                                var filesUrlsArr = stlXhr.responseText.split(";");
+                                var htmlText = "<a target=\"_blank\" href=\"";
+                                htmlText += filesUrlsArr[0];
+                                htmlText += "\" download>Скачать оригинальную модель</a>"
+                                htmlText += "<br>"
+                                htmlText += "<a target=\"_blank\" href=\"";
+                                htmlText += filesUrlsArr[1];
+                                htmlText += "\" download>Скачать редуцированную модель</a>"
+
+                                stlLinksDiv.innerHTML = htmlText;
+                            }
+                            stlXhr.send(params);
+
+                            //Заполняем элемент с сопутсвующей информацией. Для этого отсылаем серверу запрос на получение
+                            //сопуствующей информации
+                            var infoXhr = new XMLHttpRequest();
+                            infoXhr.open('POST', '/dplm/get_mesh_related_info', true);
+                            SetHeaderForPostRequest(infoXhr);
+
+                            infoXhr.onreadystatechange = function() {
+                                if(infoXhr.readyState != 4){
+                                    return;
+                                }
+
+                                var relatedInfoDiv = document.getElementById("relatedInfo");
+                                //alert(infoXhr.responseText);
+                                FillRelatedInfoDiv(relatedInfoDiv, infoXhr.responseText);
+                            }
+
+                            infoXhr.send(params);
+                        }
+
+                        xhr.send(params);
+                        //xhr.send();
+                     }
+                </script>
+            {% else %}
+                <p>В базе данных нет деталей</p>
+            {% endif %}
+
+        <div>
+        <td colspan = "2" align = "center"><input id = "DeleteButton" class="control-panel__button" type = "button" name = "deleteMesh" value = "Удалить деталь из базы" />
+            <script>
+                var deleteButton = document.getElementById('DeleteButton');
+                deleteButton.onclick = function (){
+                   if(g_selectedName == undefined){
+                       alert("Не выбрано элемента для удаления");
+                   }
+                   else{
+                       //Посылаем запрос серверу на удаление объекта из базы данных
+                       var xhr = new XMLHttpRequest();
+
+                       var params = "name=" + encodeURIComponent(g_selectedName);
+                       xhr.open('POST', '/dplm/delete_mesh', true);
+                       SetHeaderForPostRequest(xhr);
+
+                       //Убираем модель из окна просмотрщика, чтобы успешно провести удаление
+                       CreateGeometry("");
+
+                       xhr.onreadystatechange = function() {
+                           if(xhr.readyState != 4){
+                               return;
+                           }
+
+                           //Когда ответ от сервера получен, надо заново сформировать список с моделями
+                           var meshList = document.getElementById('MeshList')
+                           meshList.innerHTML = xhr.responseText;
+                       }
+
+                       xhr.send(params);
+                   }
+                }
+            </script>
+        <div>
+        <td colspan = "2" align = "center"><input id = "AddButton" class="control-panel__button" type = "button" name = "addMesh" value = "Добавить деталь в базу" />
+        <script>
+            var addButton = document.getElementById('AddButton');
+            addButton.onclick = function(){
+                document.location.href = "try_to_upload";
+            }
+        </script>
+        </div>
+
+        <input type="checkbox" name="frameCheckbox" id="frameCheckbox">Отображать каркас
+        <script>
+            var frameCheckbox = document.getElementById("frameCheckbox");
+            if(bIsFrameModeEnabled == true){
+                frameCheckbox.checked = true;
+            }
+            else{
+                frameCheckbox.checked = false;
+            }
+
+            frameCheckbox.onchange = function() {
+                if(bIsFrameModeEnabled == true){
+                    DisableFrameMode();
+                }
+                else{
+                    EnableFrameMode();
+                }
+            }
+        </script>
+        </form>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,93 @@
+﻿<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.js"></script>
+
+</head>
+
+<body>
+<script>
+
+    function SetHeaderForPostRequest(xhr)
+    {
+         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded')
+         xhr.setRequestHeader("X-CSRFToken", csrftoken);
+    }
+
+    var g_selectedName;
+    function getCookie(name)
+    {
+        var cookieValue = null;
+        if (document.cookie && document.cookie != '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = jQuery.trim(cookies[i]);
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+
+        return cookieValue;
+    }
+
+    var csrftoken = getCookie('csrftoken');
+</script>
+
+<div id = "ServerResponse">
+</div>
+<form>
+Имя модели: <input id = "meshName" name = "meshName" type = "edit">
+Строка данных: <input id = "dataLine" name = "dataLine" type = "edit">
+<div>
+<input type="hidden" name="MAX_FILE_SIZE" value="10000000" />
+Загрузить файл: <input id = "meshFile" name="fileName" type="file">
+<input id = "loadFileOnServer" type="button" value="Загрузить на сервер">
+    <script>
+        var loadButton = document.getElementById('loadFileOnServer');
+        loadButton.onclick = function(){
+            //TODO: удалить
+            var meshFile = document.getElementById('meshFile');
+
+            var xhr = new XMLHttpRequest();
+
+            var nameField = document.getElementById('meshName');
+            var dataField = document.getElementById('dataLine');//TODO: удалить
+
+            var params = "name=" + encodeURIComponent(nameField.value) +
+                    "&data=" + encodeURIComponent(dataField.value); //TODO: удалить data, в итоговом ваианте этого не будет
+            xhr.open('POST', '/dplm/insert_to_db', true);
+            SetHeaderForPostRequest(xhr);
+
+            xhr.onreadystatechange = function(){
+                if(xhr.readyState != 4){
+                    return;
+                }
+
+                //var serverResponse = document.getElementById('ServerResponse');
+                //serverResponse.innerHTML = xhr.responseText;
+                alert(xhr.responseText);
+            }
+
+            xhr.send(params);
+
+            //Сформируем второй HTTP запрос
+            var xhr2 = new XMLHttpRequest();
+
+        }
+    </script>
+<div></div>
+<input id = "returnToDb" type="button" value="Вернуться к списку моделей">
+    <script>
+        var returnButton = document.getElementById("returnToDb")
+        returnButton.onclick = function(){
+             document.location.href = "/dplm/";
+        }
+    </script>
+</form>
+</body>
+</html>

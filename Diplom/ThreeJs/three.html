@@ -1,0 +1,174 @@
+<html>
+	<head>
+		<title>My first Three.js app</title>
+		<style>canvas { width: 100%; height: 100% }</style>
+        <style>body { background: #A0CFEC;  overflow: hidden}</style>
+	</head>
+	<body>
+		<script src="https://rawgithub.com/mrdoob/three.js/master/build/three.js"></script>
+		<script>
+
+            document.addEventListener( 'mousemove', OnDocumentLeftMouseMove, false );
+            document.addEventListener( 'mousedown', OnDocumentLeftMouseDown, false );
+            document.addEventListener( 'mouseup', OnDocumentLeftMouseUp, false );
+
+            //Объекты, необходимые для контроля камеры
+            var isMouseDown = false;    //нажата ли левая клавиша мыши?
+            var onMouseDownPosition = new THREE.Vector2(), radious = 1600, theta = 45,
+                onMouseDownTheta = 45, phi = 60, onMouseDownPhi = 60;
+
+			//Создаем необходимые объекты - камеру и сцену
+            var scene = new THREE.Scene();
+			//var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+
+                var camera = new THREE.Camera( 40, window.innerWidth / window.innerHeight, 1, 10000 );
+                camera.position.x = radious * Math.sin( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 );
+				camera.position.y = radious * Math.sin( phi * Math.PI / 360 );
+				camera.position.z = radious * Math.cos( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 );
+				//camera.target.position.y = 200;
+            camera.lookAt(scene.position);//TODO: возможно это нужно поместить в другое место
+
+            //Настраиваем рендер
+			var renderer = new THREE.WebGLRenderer();
+			renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColorHex(0x333F47, 1);
+			document.body.appendChild(renderer.domElement);
+
+            //Создаем кубик
+			var geometry = new THREE.CubeGeometry(1,1,1);                   //Создали геометрию
+			var material = new THREE.MeshBasicMaterial({color: 0xffffff});  //Создали материал
+			var cube = new THREE.Mesh(geometry, material);                  //На основе этих данных создали меш
+
+			camera.position.z = 5;
+
+            //Добавляем необходимые оъекты в сцену
+            scene.add(cube);
+            scene.add(camera);
+
+            //Функции для обработки действий пользователя---------------------------------------------------------------
+            function OnDocumentLeftMouseDown(event)
+            {
+                event.preventDefault();
+
+				isMouseDown = true;
+
+				onMouseDownTheta = theta;
+				onMouseDownPhi = phi;
+				onMouseDownPosition.x = event.clientX;
+				onMouseDownPosition.y = event.clientY;
+            }
+
+            function OnDocumentLeftMouseUp(event)
+            {
+                event.preventDefault();
+
+				isMouseDown = false;
+
+				onMouseDownPosition.x = event.clientX - onMouseDownPosition.x;
+				onMouseDownPosition.y = event.clientY - onMouseDownPosition.y;
+
+//				if ( onMouseDownPosition.length() > 5 ) {
+//					return;
+//				}
+//
+//				var intersect, intersects = ray.intersectScene( scene );
+//				if ( intersects.length > 0 ) {
+//					intersect = intersects[ 0 ].object == brush ? intersects[ 1 ] : intersects[ 0 ];
+//					if ( intersect ) {
+//						if ( isShiftDown ) {
+//							if ( intersect.object != plane ) {
+//								scene.removeObject( intersect.object );
+//							}
+//						} else {
+//							var position = new THREE.Vector3().add( intersect.point, intersect.object.matrixRotation.transform( intersect.face.normal.clone() ) );
+//
+//							var voxel = new THREE.Mesh( cube, new THREE.MeshColorFillMaterial( colors[ color ] ) );
+//							voxel.position.x = Math.floor( position.x / 50 ) * 50 + 25;
+//							voxel.position.y = Math.floor( position.y / 50 ) * 50 + 25;
+//							voxel.position.z = Math.floor( position.z / 50 ) * 50 + 25;
+//							voxel.overdraw = true;
+//							scene.addObject( voxel );
+//						}
+//					}
+//				}
+//
+//				updateHash();
+//				interact();
+//				render();
+            }
+
+           function OnDocumentLeftMouseMove( event )
+            {
+                event.preventDefault();
+
+				if ( isMouseDown ) {
+
+					theta = - ( ( event.clientX - onMouseDownPosition.x ) * 0.5 ) + onMouseDownTheta;
+					phi = ( ( event.clientY - onMouseDownPosition.y ) * 0.5 ) + onMouseDownPhi;
+
+					phi = Math.min( 180, Math.max( 0, phi ) );
+
+					camera.position.x = radious * Math.sin( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 );
+					camera.position.y = radious * Math.sin( phi * Math.PI / 360 );
+					camera.position.z = radious * Math.cos( theta * Math.PI / 360 ) * Math.cos( phi * Math.PI / 360 );
+					camera.updateMatrix();
+
+				}
+
+				//mouse3D = projector.unprojectVector( new THREE.Vector3( ( event.clientX / renderer.domElement.width ) * 2 - 1, - ( event.clientY / renderer.domElement.height ) * 2 + 1, 0.5 ), camera );
+				//ray.direction = mouse3D.subSelf( camera.position ).normalize();
+
+				interact();
+				render();
+            }
+
+            function interact()
+            {
+//				if ( objectHovered ) {
+//					objectHovered.material[ 0 ].color.a = 1;
+//					objectHovered.material[ 0 ].color.updateStyleString();
+//					objectHovered = null;
+//
+//				}
+
+//				var position, intersect, intersects = ray.intersectScene( scene );
+//				if ( intersects.length > 0 ) {
+//					intersect = intersects[ 0 ].object != brush ? intersects[ 0 ] : intersects[ 1 ];
+//					if ( intersect ) {
+//						if ( isShiftDown ) {
+//							if ( intersect.object != plane ) {
+//								objectHovered = intersect.object;
+//								objectHovered.material[ 0 ].color.a = 0.5;
+//								objectHovered.material[ 0 ].color.updateStyleString();
+//								return;
+//							}
+//						} else {
+//							position = new THREE.Vector3().add( intersect.point, intersect.object.matrixRotation.transform( intersect.face.normal.clone() ) );
+//							brush.position.x = Math.floor( position.x / 50 ) * 50 + 25;
+//							brush.position.y = Math.floor( position.y / 50 ) * 50 + 25;
+//							brush.position.z = Math.floor( position.z / 50 ) * 50 + 25;
+//							return;
+//						}
+//					}
+//				}
+//
+//				brush.position.y = 2000;
+
+			}
+
+            //Функция отрисовки сцены
+			function render() {
+				renderer.render( scene, camera );
+			}
+
+             //Добавляем обработчики событий
+//            document.onmousedown = OnDocumentLeftMouseDown;
+//            document.onmouseup = OnDocumentLeftMouseUp;
+//            document.onmousemove = OnDocumentLeftMouseMove;
+
+
+            //Рисуем сцену
+			render();
+		</script>
+	</body>
+</html>
