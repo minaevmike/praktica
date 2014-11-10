@@ -2,12 +2,12 @@ import os
 import shutil
 from django.conf import settings
 from django.shortcuts import render
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.template import RequestContext, loader
 from django.core.files.uploadedfile import UploadedFile, File
 #from django.core.context_processors import csrf
 from dplm.models import Mesh
-from dplm.models import Doc, User
+from dplm.models import Doc, User, Project
 from .decimation import decimate_pro
 from django.contrib.auth import login, logout, authenticate
 from django.views.decorators.csrf import csrf_exempt
@@ -34,7 +34,14 @@ g_uploadedFileName = settings.UPLOAD_FOLDER + os.sep + "uploaded.STL"
 g_uploadedDecFileName = CreateDecimateName(g_uploadedFileName)
 
 def index(request):
-    mesh_list = Mesh.objects.all()
+    project_name = None
+    try:
+        project_name = request.GET['project']
+    except:
+        project_name = request.session['project']
+    project = Project.objects.filter(m_name=project_name)[0]
+    request.session['project'] = project_name
+    mesh_list = Mesh.objects.filter(project=project)
     template = loader.get_template('dplm/index.html')
     context = RequestContext(request, {
         'mesh_list': mesh_list,
@@ -142,17 +149,15 @@ def registrate(request):
 @csrf_exempt
 def register(request):
     info = ''
-    #try:
-    username = request.POST['username']
-    password = request.POST['password']
-    user = User.objects.create_user(username=username, password=password)
-    user.save()
-    user = authenticate(username=username, password=password)
-    login(request, user)
-    return render(request, 'dplm/registrate.html', {'error':''})
+    try:
+        username = request.POST['username']
+        password = request.POST['password']
+        user = User.objects.create_user(username=username, password=password)
+        user.save()
+        return render(request, 'dplm/login.html', {'error': 'Sucsessfully registarted, now you can login'})
     #except 
-    #except :
-      #  return render(request, 'dplm/registrate.html', {'error':'CANT registrate'})
+    except :
+        return render(request, 'dplm/registrate.html', {'error': 'CAN\'T registrate'})
 
 def first_upload_step(request):
     if request.FILES == None:
@@ -196,15 +201,32 @@ def HandleRelatedFile(relatedFile):
     destination.close()
     return 1
 
+def login_page(request):
+    return render(request, 'dplm/login.html', {})
+
+def login_my(request):
+    try:
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(username=username, password=password)
+        login(request, user)
+        return HttpResponseRedirect("/dplm/")
+    except :
+        return render(request, 'dplm/login.html', {'error': 'bad login or password'})
+
+def logout_my(request):
+    logout(request)
+    return HttpResponseRedirect("/dplm/login_page")
 
 def DeleteAllFilesInFolder(folder):
-    for the_file in os.listdir(folder):
-        file_path = os.path.join(folder, the_file)
-        try:
-            if os.path.isfile(file_path):
-                os.unlink(file_path)
-        except Exception, e:
-            print e
+    if os.path.exists(folder):
+        for the_file in os.listdir(folder):
+            file_path = os.path.join(folder, the_file)
+            try:
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+            except Exception, e:
+                print e
 
 
 def decimate(request):
@@ -214,33 +236,37 @@ def decimate(request):
 
 
 def second_upload_step(request):
-    #Creating mesh files as copies of uploaded files in UPLOAD_FOLDER
-    newObjectTitle = request.POST.get('title')
-    meshOrigFileName = newObjectTitle + ".STL"
-    meshDecimFileName = newObjectTitle + "_dec.STL"
+    if request.user.is_authenticated():
+        #Creating mesh files as copies of uploaded files in UPLOAD_FOLDER
+        newObjectTitle = request.POST.get('title')
+        meshOrigFileName = request.user.username + newObjectTitle + ".STL"
+        meshDecimFileName = request.user.username + newObjectTitle + "_dec.STL"
 
-    origFile = open(g_uploadedFileName, 'r')
-    djangoOrigFile = File(origFile)
+        origFile = open(g_uploadedFileName + request.user.username, 'r')
+        djangoOrigFile = File(origFile)
 
-    decFile = open(g_uploadedDecFileName, 'r')
-    djangoDecimFile = File(decFile)
+        decFile = open(g_uploadedDecFileName + request.user.username, 'r')
+        djangoDecimFile = File(decFile)
 
-    #Creating folder where we put related files of the new detail
-    newFolderName = os.path.join(settings.RELATED_FOLDER, newObjectTitle)
-    #os.makedirs(newFolderName)
+        #Creating folder where we put related files of the new detail
+        newFolderName = os.path.join(settings.RELATED_FOLDER, newObjectTitle)
+        #os.makedirs(newFolderName)
 
-    #And put files in it
-    #CopyFilesFromOneFolderToAnother(settings.RELATED_MID_FOLDER, newFolderName)
-
-    #Creating new object in data base
-    newMesh = Mesh()
-    newMesh.m_name = (newObjectTitle)
-    newMesh.m_msg = (newObjectTitle)#TODO: delete this line
-    newMesh.m_commentForRelatedFiles = request.POST.get('comment')
-    newMesh.m_stringWithRelatedFiles = request.POST.get('related_files_string')
-    newMesh.m_origMeshFile.save(meshOrigFileName, djangoOrigFile)#TODO: if djangoOrigFile is binary, this is doesn't work
-    newMesh.m_decimMeshFile.save(meshDecimFileName, djangoDecimFile)
-    newMesh.save()
+        #And put files in it
+        #CopyFilesFromOneFolderToAnother(settings.RELATED_MID_FOLDER, newFolderName)
+        project_name = request.session['project']
+        project = Project.objects.filter(m_name=project_name)[0]
+        print(project.m_name)
+        #Creating new object in data base
+        newMesh = Mesh()
+        newMesh.m_name = (newObjectTitle)
+        newMesh.m_msg = (newObjectTitle)#TODO: delete this line
+        newMesh.m_commentForRelatedFiles = request.POST.get('comment')
+        newMesh.project = project
+        newMesh.m_stringWithRelatedFiles = request.POST.get('related_files_string')
+        newMesh.m_origMeshFile.save(meshOrigFileName, djangoOrigFile)#TODO: if djangoOrigFile is binary, this is doesn't work
+        newMesh.m_decimMeshFile.save(meshDecimFileName, djangoDecimFile)
+        newMesh.save()
 
 
 def CopyFilesFromOneFolderToAnother(dir_src, dir_dst):
@@ -251,13 +277,14 @@ def CopyFilesFromOneFolderToAnother(dir_src, dir_dst):
 
 
 def CreateDecimatedFileInUploadFolder(request):
-    origFile = request.FILES['stlFile']
+    if request.user.is_authenticated():
+        origFile = request.FILES['stlFile']
 
-    #saving original file in folder UPLOAD_FOLDER
-    WriteFileToDestination(origFile, g_uploadedFileName)
+        #saving original file in folder UPLOAD_FOLDER
+        WriteFileToDestination(origFile, g_uploadedFileName + request.user.username)
 
-    #Creating decimated file in UPLOADED_FOLDER
-    decimate_pro(g_uploadedFileName, g_uploadedDecFileName, 0.5)
+        #Creating decimated file in UPLOADED_FOLDER
+        decimate_pro(g_uploadedFileName + request.user.username, g_uploadedDecFileName + request.user.username, 0.5)
 
 
 def WriteFileToDestination(file, destUrl):

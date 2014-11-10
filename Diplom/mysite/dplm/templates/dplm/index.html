@@ -22,8 +22,10 @@
 
 </head>
 <body>
+{% if user.is_authenticated %}
 <div class="container">
     <!--<img src='{% static "img.png" %}'/>--> <!--TODO: для примера, потом удалить-->
+ Hello {{ user.username }}, <a href="/dplm/logout">Logout</a>
 
     <div id="DelName"><!--TODO: удалить-->
     </div>
@@ -190,5 +192,9 @@
         </form>
     </div>
 </div>
+{% else %}
+YOU NEED TO
+<a href="/dplm/login_page">LOGIN</a><br/>
+{% endif %}
 </body>
 </html>

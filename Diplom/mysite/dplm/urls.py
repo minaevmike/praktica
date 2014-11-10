@@ -3,7 +3,7 @@ from django.conf.urls.static import static
 from django.conf.urls import patterns, url
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
-from dplm import views
+from dplm import views, cabinet
 
 urlpatterns = patterns('',
     url(r'^$', views.index, name='index'),
@@ -26,7 +26,12 @@ urlpatterns = patterns('',
     url(r'get_autoBody_xml', views.get_autoBody_xml, name='get_autoBody_xml'),
     url(r'get_wheel_xml', views.get_wheel_xml, name='get_wheel_xml'),
     url(r'registrate', views.registrate, name='registrate'),
-    url(r'register', views.register, name='register')
+    url(r'register', views.register, name='register'),
+    url(r'login_page', views.login_page, name='login_page'),
+    url(r'login', views.login_my, name='login'),
+    url(r'logout', views.logout_my, name='logout_my'),
+    url(r'cabinet', cabinet.cabinet, name='cabinet'),
+    url(r'add_new_project', cabinet.add_new_project, name='add_new_project')
    # url(r'^media/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.MEDIA_ROOT})
 
 ) + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

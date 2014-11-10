@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+
+{% load static staticfiles %}
+<style>body { background: #A0CFEC}</style>
+<script type="text/javascript" src='{% static "JS/cabinet.js" %}'></script>
+
+</head>
+<body>
+{% if user.is_authenticated %}
+ Hello <a href="/dplm/cabinet">{{ user.username }}</a>, <a href="/dplm/logout">Logout</a> <br>
+Your Projects:<br>
+<select id="projects_selector">
+{% if projects %}
+{% for project in projects %}
+<option value="{{ project.m_name }}">{{ project.m_name }}</option>
+{% endfor %}
+{% endif %}</select><br>
+<button onclick="open_project()">Open project models</button>
+<button onclick="create_project()">Create new project</button>
+<form id="create_project_form" style="visibility: hidden" action="/dplm/add_new_project" method="post">
+    {% csrf_token %}
+    Project name: <input type="text" name="name"/><br>
+    Description: <textarea id="desc" name="desc"></textarea><br>
+    <input type="submit" value="Add project">
+</form>
+{% else %}
+YOU NEED TO
+<a href="/dplm/login_page">LOGIN</a><br/>
+{% endif %}
+</body>
+</html>

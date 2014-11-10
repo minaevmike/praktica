@@ -12,6 +12,11 @@ class MediaModel(models.Model):
     secondTitle = models.CharField(max_length = 200)
     media_file = models.FileField(upload_to='dplm/meshes/')
 
+class Project(models.Model):
+    m_name = models.CharField(max_length=200)
+    user = models.ForeignKey(User)
+    description = models.CharField(max_length=1000)
+
 class Mesh(models.Model):
     m_name = models.CharField(max_length=200)
     m_msg = models.CharField(max_length=1000)
@@ -19,6 +24,7 @@ class Mesh(models.Model):
     m_stringWithRelatedFiles = models.CharField(max_length=1000)
     m_origMeshFile = models.FileField(upload_to='dplm/meshes/')
     m_decimMeshFile = models.FileField(upload_to='dplm/meshes/')
+    project = models.ForeignKey(Project)
 
 def delete_filefield(sender, **kwargs):
     #Automatically deleted files when records are removed
@@ -31,6 +37,8 @@ post_delete.connect(delete_filefield, Mesh)
 class Doc(models.Model):
     m_name = models.CharField(max_length=200)
     m_docFile = models.FileField(upload_to='dplm/docs/')
-        
+
+
+
 
 #UploadFileForm = modelform_factory(Mesh)

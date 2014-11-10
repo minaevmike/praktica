@@ -13,6 +13,8 @@
 
 </head>
 <body>
+    {% if user.is_authenticated %}
+
     <!--набор скрытых полей для передачи служебной информации-->
     <input type="hidden" name="comment" id="comment" value="{{comment}}">
     <input type="hidden" name="related_files_string" id="related_files_string" value="{{related_files_string}}">
@@ -22,7 +24,7 @@
     <div class = "main" id = "viewport">
     </div>
     <script>
-        InitScene( "viewport", "/media/dplm/meshes/uploadProcess/uploaded_dec.STL" );
+        InitScene( "viewport", "/media/dplm/meshes/uploadProcess/uploaded_dec.STL" + "{{user.username}}");
     </script>
 
     <div class = "control-panel">
@@ -53,7 +55,7 @@
                         }
 
                         //Перезагружаем изображение
-                        CreateGeometry( "/media/dplm/meshes/uploadProcess/uploaded_dec.STL" );
+                        CreateGeometry( "/media/dplm/meshes/uploadProcess/uploaded_dec.STL" + "{{user.username}}");
                     }
 
                     xhr.send(params);
@@ -100,4 +102,7 @@
 
     <div>
 </div>
+    {% else %}
+    YOU NEED TO <a href="/dplm/login_page">LOGIN</a><br/>
+    {% endif %}
 </body>
